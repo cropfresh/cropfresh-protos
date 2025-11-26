@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package cropfresh.catalog;
+
+service CatalogService {
+  rpc ListProduce(ListProduceRequest) returns (ListProduceResponse);
+  rpc GetProduceDetails(GetProduceDetailsRequest) returns (GetProduceDetailsResponse);
+  rpc UpdateInventory(UpdateInventoryRequest) returns (UpdateInventoryResponse);
+}
+
+message ListProduceRequest {
+  string buyer_id = 1;
+  repeated string categories = 2;
+  string quality_grade = 3; // A, B, C, D
+  int32 page = 4;
+  int32 limit = 5;
+}
+
+message ProduceItem {
+  string id = 1;
+  string farmer_id = 2;
+  string name = 3;
+  string category = 4;
+  double quantity_kg = 5;
+  double price_per_kg = 6;
+  string quality_grade = 7;
+  string location = 8;
+  string photo_url = 9;
+}
+
+message ListProduceResponse {
+  repeated ProduceItem items = 1;
+  int32 total = 2;
+  int32 page = 3;
+}
+
+message GetProduceDetailsRequest {
+  string produce_id = 1;
+}
+
+message GetProduceDetailsResponse {
+  ProduceItem item = 1;
+  string digital_twin_id = 2;
+}
+
+message UpdateInventoryRequest {
+  string produce_id = 1;
+  double quantity_change = 2;
+}
+
+message UpdateInventoryResponse {
+  bool success = 1;
+  double new_quantity = 2;
+}

@@ -1,0 +1,17 @@
+{
+    "name": "@cropfresh/protos",
+    "version": "0.1.0",
+    "description": "Shared Protocol Buffer definitions for CropFresh microservices",
+    "main": "index.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cropfresh/cropfresh-protos.git"
+    },
+    "keywords": [
+        "protobuf",
+        "grpc",
+        "cropfresh"
+    ],
+    "author": "CropFresh Team",
+    "license": "MIT"
+}

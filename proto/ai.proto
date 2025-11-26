@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package cropfresh.ai;
+
+service AIService {
+  rpc GradeQuality(GradeQualityRequest) returns (GradeQualityResponse);
+  rpc PredictShelfLife(PredictShelfLifeRequest) returns (PredictShelfLifeResponse);
+  rpc MatchBuyer(MatchBuyerRequest) returns (MatchBuyerResponse);
+  rpc OptimizePrice(OptimizePriceRequest) returns (OptimizePriceResponse);
+}
+
+message GradeQualityRequest {
+  string produce_type = 1;
+  string photo_url = 2;
+  double weight_kg = 3;
+}
+
+message GradeQualityResponse {
+  string grade = 1; // A, B, C, D
+  double confidence_score = 2;
+  repeated string quality_issues = 3;
+  string suggested_price_range = 4;
+}
+
+message PredictShelfLifeRequest {
+  string produce_type = 1;
+  string quality_grade = 2;
+  double temperature_celsius = 3;
+}
+
+message PredictShelfLifeResponse {
+  int32 estimated_days = 1;
+  double confidence_score = 2;
+  string storage_recommendation = 3;
+}
+
+message MatchBuyerRequest {
+  string produce_id = 1;
+  string location = 2;
+  double quantity_kg = 3;
+  string quality_grade = 4;
+}
+
+message MatchBuyerResponse {
+  repeated string buyer_ids = 1;
+  repeated double match_scores = 2;
+  string recommended_price = 3;
+}
+
+message OptimizePriceRequest {
+  string produce_type = 1;
+  string quality_grade = 2;
+  string location = 3;
+  double quantity_kg = 4;
+}
+
+message OptimizePriceResponse {
+  double suggested_price_per_kg = 1;
+  double min_price = 2;
+  double max_price = 3;
+  string market_trend = 4; // rising, falling, stable
+}

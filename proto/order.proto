@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package cropfresh.order;
+
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc GetOrderStatus(GetOrderStatusRequest) returns (GetOrderStatusResponse);
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+}
+
+message CreateOrderRequest {
+  string buyer_id = 1;
+  string produce_id = 2;
+  double quantity_kg = 3;
+  string delivery_address = 4;
+  string delivery_date = 5;
+}
+
+message CreateOrderResponse {
+  string order_id = 1;
+  double total_amount = 2;
+  string estimated_delivery = 3;
+}
+
+message GetOrderStatusRequest {
+  string order_id = 1;
+}
+
+message GetOrderStatusResponse {
+  string order_id = 1;
+  string status = 2; // pending, assigned, in_transit, delivered, cancelled
+  string hauler_id = 3;
+  string current_location = 4;
+  string estimated_delivery = 5;
+}
+
+message UpdateOrderStatusRequest {
+  string order_id = 1;
+  string new_status = 2;
+  string location = 3;
+  string notes = 4;
+}
+
+message UpdateOrderStatusResponse {
+  bool success = 1;
+  string timestamp = 2;
+}
+
+message CancelOrderRequest {
+  string order_id = 1;
+  string reason = 2;
+}
+
+message CancelOrderResponse {
+  bool success = 1;
+  string refund_id = 2;
+}

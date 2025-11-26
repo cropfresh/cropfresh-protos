@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package cropfresh.logistics;
+
+service LogisticsService {
+  rpc AssignRoute(AssignRouteRequest) returns (AssignRouteResponse);
+  rpc GetOptimizedRoute(GetOptimizedRouteRequest) returns (GetOptimizedRouteResponse);
+  rpc UpdateLocation(UpdateLocationRequest) returns (UpdateLocationResponse);
+  rpc CompleteRoute(CompleteRouteRequest) returns (CompleteRouteResponse);
+}
+
+message AssignRouteRequest {
+  string hauler_id = 1;
+  repeated string order_ids = 2;
+  string vehicle_type = 3;
+}
+
+message AssignRouteResponse {
+  string route_id = 1;
+  repeated Waypoint waypoints = 2;
+  double estimated_distance_km = 3;
+  double estimated_duration_hours = 4;
+  double earnings = 5;
+}
+
+message Waypoint {
+  string location = 1;
+  string type = 2; // pickup, delivery
+  string address = 3;
+  double lat = 4;
+  double lng = 5;
+}
+
+message GetOptimizedRouteRequest {
+  string route_id = 1;
+}
+
+message GetOptimizedRouteResponse {
+  repeated Waypoint optimized_waypoints = 1;
+  double total_distance_km = 2;
+}
+
+message UpdateLocationRequest {
+  string hauler_id = 1;
+  string route_id = 2;
+  double lat = 3;
+  double lng = 4;
+}
+
+message UpdateLocationResponse {
+  bool success = 1;
+  string next_waypoint = 2;
+}
+
+message CompleteRouteRequest {
+  string route_id = 1;
+  string hauler_id = 2;
+}
+
+message CompleteRouteResponse {
+  bool success = 1;
+  double earnings = 2;
+  string payment_id = 3;
+}
