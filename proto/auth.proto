@@ -28,6 +28,21 @@ service AuthService {
   rpc AddPaymentDetails(AddPaymentDetailsRequest) returns (PaymentDetailsResponse);
   rpc GetPaymentDetails(GetPaymentDetailsRequest) returns (PaymentDetailsListResponse);
   rpc VerifyUpi(VerifyUpiRequest) returns (VerifyUpiResponse);
+  
+  // Profile Management (Story 2.7)
+  rpc GetUserProfile(GetUserProfileRequest) returns (UserProfileResponse);
+  rpc UpdateBuyerProfile(UpdateBuyerProfileRequest) returns (BuyerProfileResponse);
+  rpc UpdateHaulerProfile(UpdateHaulerProfileRequest) returns (HaulerProfileResponse);
+  rpc UpdateAgentProfile(UpdateAgentProfileRequest) returns (AgentProfileResponse);
+  rpc GetProfileAuditLog(GetProfileAuditLogRequest) returns (ProfileAuditLogResponse);
+  rpc InitiateFieldVerification(InitiateVerificationRequest) returns (InitiateVerificationResponse);
+  rpc ConfirmFieldVerification(ConfirmVerificationRequest) returns (ConfirmVerificationResponse);
+  
+  // Buyer Delivery Addresses (Story 2.7 - AC2)
+  rpc AddDeliveryAddress(AddDeliveryAddressRequest) returns (DeliveryAddressResponse);
+  rpc UpdateDeliveryAddress(UpdateDeliveryAddressRequest) returns (DeliveryAddressResponse);
+  rpc DeleteDeliveryAddress(DeleteDeliveryAddressRequest) returns (DeleteResponse);
+  rpc ListDeliveryAddresses(ListDeliveryAddressesRequest) returns (DeliveryAddressListResponse);
 }
 
 // ============ OTP Messages ============
@@ -232,4 +247,226 @@ message VerifyUpiResponse {
   bool valid = 1;
   string name = 2;  // Account holder name if valid
   string message = 3;
+}
+
+// ============ Story 2.7: Profile Management Messages ============
+
+message GetUserProfileRequest {
+  string user_id = 1;
+}
+
+message UserProfileResponse {
+  bool success = 1;
+  string message = 2;
+  string user_type = 3;  // FARMER, BUYER, HAULER, AGENT
+  FarmerProfile farmer_profile = 4;
+  BuyerProfile buyer_profile = 5;
+  HaulerProfile hauler_profile = 6;
+  AgentProfile agent_profile = 7;
+  repeated PendingVerification pending_verifications = 8;
+}
+
+message UpdateBuyerProfileRequest {
+  string user_id = 1;
+  string business_name = 2;
+  string business_address = 3;
+  string contact_email = 4;
+  string quality_preference = 5;  // GRADE_A_ONLY, GRADE_A_B, ALL_GRADES
+  string order_frequency = 6;     // DAILY, WEEKLY, MONTHLY
+  string ip_address = 7;          // For audit logging
+}
+
+message BuyerProfile {
+  int32 id = 1;
+  string user_id = 2;
+  string business_name = 3;
+  string business_type = 4;
+  string gst_number = 5;
+  string address_line1 = 6;
+  string address_line2 = 7;
+  string city = 8;
+  string state = 9;
+  string pincode = 10;
+  string quality_preference = 11;
+  string order_frequency = 12;
+}
+
+message BuyerProfileResponse {
+  bool success = 1;
+  string message = 2;
+  BuyerProfile profile = 3;
+}
+
+message UpdateHaulerProfileRequest {
+  string user_id = 1;
+  string vehicle_number = 2;
+  int32 vehicle_capacity_kg = 3;
+  string dl_expiry = 4;            // ISO date string
+  string upi_id = 5;
+  string available_hours_start = 6; // HH:MM format
+  string available_hours_end = 7;   // HH:MM format
+  repeated string available_days = 8; // ["MON", "TUE", ...]
+  string ip_address = 9;
+}
+
+message HaulerProfile {
+  int32 id = 1;
+  string user_id = 2;
+  string vehicle_type = 3;
+  string vehicle_number = 4;
+  int32 payload_capacity_kg = 5;
+  string dl_number = 6;
+  string dl_expiry = 7;
+  string verification_status = 8;
+  string available_hours_start = 9;
+  string available_hours_end = 10;
+  repeated string available_days = 11;
+}
+
+message HaulerProfileResponse {
+  bool success = 1;
+  string message = 2;
+  HaulerProfile profile = 3;
+}
+
+message UpdateAgentProfileRequest {
+  string user_id = 1;
+  string upi_id = 2;               // Only editable field for agents
+  string language_preference = 3;  // UI language
+  string ip_address = 4;
+}
+
+message AgentProfile {
+  int32 id = 1;
+  string user_id = 2;
+  string employee_id = 3;
+  string full_name = 4;            // View-only (from User)
+  string phone = 5;                // View-only
+  string employment_type = 6;
+  string status = 7;
+  string language_preference = 8;
+  repeated Zone assigned_zones = 9;
+}
+
+message Zone {
+  int32 id = 1;
+  string name = 2;
+  string type = 3;  // STATE, DISTRICT, TALUK, VILLAGE
+}
+
+message AgentProfileResponse {
+  bool success = 1;
+  string message = 2;
+  AgentProfile profile = 3;
+}
+
+message GetProfileAuditLogRequest {
+  string user_id = 1;
+  int32 limit = 2;     // Default 50
+  int32 offset = 3;
+}
+
+message ProfileAuditEntry {
+  int32 id = 1;
+  string field_name = 2;
+  string old_value = 3;   // Masked for sensitive fields
+  string new_value = 4;   // Masked for sensitive fields
+  string changed_at = 5;  // ISO timestamp
+}
+
+message ProfileAuditLogResponse {
+  bool success = 1;
+  repeated ProfileAuditEntry entries = 2;
+  int32 total_count = 3;
+}
+
+message InitiateVerificationRequest {
+  string user_id = 1;
+  string field_name = 2;    // upi_id, email, phone
+  string new_value = 3;     // New value to verify
+}
+
+message InitiateVerificationResponse {
+  bool success = 1;
+  string message = 2;
+  string verification_type = 3;  // OTP, EMAIL_LINK, UPI_TEST_PAYMENT
+  int32 expires_in_seconds = 4;
+}
+
+message ConfirmVerificationRequest {
+  string user_id = 1;
+  string field_name = 2;
+  string token = 3;       // OTP code or email token
+}
+
+message ConfirmVerificationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ============ Buyer Delivery Addresses (Story 2.7 - AC2) ============
+
+message DeliveryAddress {
+  int32 id = 1;
+  string label = 2;           // e.g., "Main Office"
+  string address_line1 = 3;
+  string address_line2 = 4;
+  string city = 5;
+  string pincode = 6;
+  string instructions = 7;    // Delivery instructions
+  bool is_default = 8;
+}
+
+message AddDeliveryAddressRequest {
+  string user_id = 1;
+  string label = 2;
+  string address_line1 = 3;
+  string address_line2 = 4;
+  string city = 5;
+  string pincode = 6;
+  string instructions = 7;
+  bool is_default = 8;
+}
+
+message UpdateDeliveryAddressRequest {
+  int32 address_id = 1;
+  string user_id = 2;
+  string label = 3;
+  string address_line1 = 4;
+  string address_line2 = 5;
+  string city = 6;
+  string pincode = 7;
+  string instructions = 8;
+  bool is_default = 9;
+}
+
+message DeleteDeliveryAddressRequest {
+  int32 address_id = 1;
+  string user_id = 2;
+}
+
+message DeleteResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListDeliveryAddressesRequest {
+  string user_id = 1;
+}
+
+message DeliveryAddressResponse {
+  bool success = 1;
+  string message = 2;
+  DeliveryAddress address = 3;
+}
+
+message DeliveryAddressListResponse {
+  bool success = 1;
+  repeated DeliveryAddress addresses = 2;
+}
+
+message PendingVerification {
+  string field_name = 1;
+  string status = 2;       // pending, expired
+  string expires_at = 3;   // ISO timestamp
 }
