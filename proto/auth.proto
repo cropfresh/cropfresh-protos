@@ -3,17 +3,56 @@ syntax = "proto3";
 package cropfresh.auth;
 
 service AuthService {
+  // OTP-based authentication
+  rpc SendOtp(SendOtpRequest) returns (SendOtpResponse);
+  rpc VerifyOtp(VerifyOtpRequest) returns (LoginResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
+  
+  // PIN-based authentication (Story 2.1 - AC8)
+  rpc SetPin(SetPinRequest) returns (SetPinResponse);
+  rpc LoginWithPin(LoginWithPinRequest) returns (LoginResponse);
+  rpc ResetPin(ResetPinRequest) returns (SetPinResponse);
+  
+  // Session management
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  
+  // Farmer onboarding (Story 2.1 - AC5, AC6)
   rpc CreateFarmerAccount(CreateFarmerAccountRequest) returns (CreateFarmerAccountResponse);
+  rpc CreateFarmerProfile(CreateFarmerProfileRequest) returns (FarmerProfileResponse);
+  rpc UpdateFarmerProfile(UpdateFarmerProfileRequest) returns (FarmerProfileResponse);
+  rpc GetFarmerProfile(GetFarmerProfileRequest) returns (FarmerProfileResponse);
+  
+  // Payment details (Story 2.1 - AC7)
+  rpc AddPaymentDetails(AddPaymentDetailsRequest) returns (PaymentDetailsResponse);
+  rpc GetPaymentDetails(GetPaymentDetailsRequest) returns (PaymentDetailsListResponse);
+  rpc VerifyUpi(VerifyUpiRequest) returns (VerifyUpiResponse);
+}
+
+// ============ OTP Messages ============
+
+message SendOtpRequest {
+  string phone = 1;
+  string user_type = 2;
+}
+
+message SendOtpResponse {
+  bool success = 1;
+  int32 expires_in_seconds = 2;
+  string message = 3;
+}
+
+message VerifyOtpRequest {
+  string phone = 1;
+  string otp = 2;
+  string user_type = 3;
 }
 
 message LoginRequest {
   string phone = 1;
   string otp = 2;
-  string user_type = 3; // farmer, buyer, hauler, agent
+  string user_type = 3;
 }
 
 message LoginResponse {
@@ -21,7 +60,38 @@ message LoginResponse {
   string refresh_token = 2;
   string user_id = 3;
   string user_type = 4;
+  bool is_new_user = 5;
+  bool has_pin_set = 6;
+  bool has_payment_details = 7;
+  string language_preference = 8;
 }
+
+// ============ PIN Messages (AC8) ============
+
+message SetPinRequest {
+  string user_id = 1;
+  string pin = 2;
+  string confirm_pin = 3;
+}
+
+message SetPinResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message LoginWithPinRequest {
+  string user_id = 1;
+  string pin = 2;
+  string device_id = 3;
+}
+
+message ResetPinRequest {
+  string phone = 1;
+  string otp = 2;
+  string new_pin = 3;
+}
+
+// ============ Session Messages ============
 
 message LogoutRequest {
   string token = 1;
@@ -50,6 +120,8 @@ message RefreshTokenResponse {
   string refresh_token = 2;
 }
 
+// ============ Farmer Account Messages ============
+
 message CreateFarmerAccountRequest {
   string phone_number = 1;
   string otp = 2;
@@ -61,4 +133,103 @@ message CreateFarmerAccountResponse {
   string refresh_token = 2;
   string user_id = 3;
   string user_type = 4;
+}
+
+// ============ Farmer Profile Messages (AC5, AC6) ============
+
+message CreateFarmerProfileRequest {
+  string user_id = 1;
+  string full_name = 2;
+  string village = 3;
+  string taluk = 4;
+  string district = 5;
+  string state = 6;
+  string pincode = 7;
+  string farm_size = 8;  // SMALL, MEDIUM, LARGE
+  repeated string farming_types = 9;
+  repeated string main_crops = 10;
+}
+
+message UpdateFarmerProfileRequest {
+  string user_id = 1;
+  string full_name = 2;
+  string village = 3;
+  string taluk = 4;
+  string district = 5;
+  string state = 6;
+  string pincode = 7;
+  string farm_size = 8;
+  repeated string farming_types = 9;
+  repeated string main_crops = 10;
+}
+
+message GetFarmerProfileRequest {
+  string user_id = 1;
+}
+
+message FarmerProfileResponse {
+  bool success = 1;
+  string message = 2;
+  FarmerProfile profile = 3;
+}
+
+message FarmerProfile {
+  int32 id = 1;
+  string user_id = 2;
+  string full_name = 3;
+  string village = 4;
+  string taluk = 5;
+  string district = 6;
+  string state = 7;
+  string pincode = 8;
+  string farm_size = 9;
+  repeated string farming_types = 10;
+  repeated string main_crops = 11;
+}
+
+// ============ Payment Details Messages (AC7) ============
+
+message AddPaymentDetailsRequest {
+  string user_id = 1;
+  string payment_type = 2;  // UPI, BANK
+  string upi_id = 3;
+  string bank_account = 4;
+  string ifsc_code = 5;
+  string bank_name = 6;
+}
+
+message GetPaymentDetailsRequest {
+  string user_id = 1;
+}
+
+message PaymentDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  PaymentDetails details = 3;
+}
+
+message PaymentDetailsListResponse {
+  bool success = 1;
+  repeated PaymentDetails details = 2;
+}
+
+message PaymentDetails {
+  int32 id = 1;
+  string payment_type = 2;
+  string upi_id = 3;
+  string bank_account = 4;
+  string ifsc_code = 5;
+  string bank_name = 6;
+  bool is_verified = 7;
+  bool is_primary = 8;
+}
+
+message VerifyUpiRequest {
+  string upi_id = 1;
+}
+
+message VerifyUpiResponse {
+  bool valid = 1;
+  string name = 2;  // Account holder name if valid
+  string message = 3;
 }
