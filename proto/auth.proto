@@ -18,6 +18,13 @@ service AuthService {
   rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   
+  // Session management (Story 2.8)
+  rpc ListActiveSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+  rpc RevokeAllSessions(RevokeAllSessionsRequest) returns (RevokeAllSessionsResponse);
+  rpc InitiateReauth(InitiateReauthRequest) returns (InitiateReauthResponse);
+  rpc ValidateReauth(ValidateReauthRequest) returns (ValidateReauthResponse);
+  
   // Farmer onboarding (Story 2.1 - AC5, AC6)
   rpc CreateFarmerAccount(CreateFarmerAccountRequest) returns (CreateFarmerAccountResponse);
   rpc CreateFarmerProfile(CreateFarmerProfileRequest) returns (FarmerProfileResponse);
@@ -44,6 +51,7 @@ service AuthService {
   rpc DeleteDeliveryAddress(DeleteDeliveryAddressRequest) returns (DeleteResponse);
   rpc ListDeliveryAddresses(ListDeliveryAddressesRequest) returns (DeliveryAddressListResponse);
 }
+
 
 // ============ OTP Messages ============
 
@@ -133,6 +141,84 @@ message RefreshTokenRequest {
 message RefreshTokenResponse {
   string token = 1;
   string refresh_token = 2;
+}
+
+// ============ Story 2.8: Session Management Messages ============
+
+message SessionInfo {
+  int32 id = 1;
+  string device_name = 2;
+  string device_id = 3;
+  string login_time = 4;         // ISO timestamp
+  string last_active_at = 5;     // ISO timestamp
+  string location_city = 6;
+  string location_region = 7;
+  string ip_address = 8;
+  bool is_current_device = 9;
+}
+
+message ListSessionsRequest {
+  string user_id = 1;
+  int32 current_session_id = 2;
+}
+
+message ListSessionsResponse {
+  bool success = 1;
+  repeated SessionInfo sessions = 2;
+  int32 current_session_id = 3;
+}
+
+message RevokeSessionRequest {
+  string user_id = 1;
+  int32 session_id = 2;
+  int32 current_session_id = 3;
+}
+
+message RevokeSessionResponse {
+  bool success = 1;
+  string message = 2;
+  string error = 3;
+}
+
+message RevokeAllSessionsRequest {
+  string user_id = 1;
+  int32 current_session_id = 2;
+  string phone = 3;              // For SMS notification
+}
+
+message RevokeAllSessionsResponse {
+  bool success = 1;
+  int32 revoked_count = 2;
+  string message = 3;
+}
+
+message InitiateReauthRequest {
+  string user_id = 1;
+  string action = 2;             // CriticalAction enum value
+  string user_type = 3;          // UserRole enum value
+}
+
+message InitiateReauthResponse {
+  bool success = 1;
+  string reauth_token = 2;
+  int32 expires_in_seconds = 3;
+  repeated string allowed_methods = 4;  // PIN, OTP, PASSWORD
+  string message = 5;
+}
+
+message ValidateReauthRequest {
+  string user_id = 1;
+  string action = 2;
+  string reauth_token = 3;
+  string method = 4;             // PIN, OTP, or PASSWORD
+  string credential = 5;         // The PIN, OTP code, or password
+  string phone = 6;              // For OTP verification
+}
+
+message ValidateReauthResponse {
+  bool success = 1;
+  string message = 2;
+  string error = 3;
 }
 
 // ============ Farmer Account Messages ============
