@@ -3,11 +3,193 @@ syntax = "proto3";
 package cropfresh.order;
 
 service OrderService {
+  // Existing RPCs
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
   rpc GetOrderStatus(GetOrderStatusRequest) returns (GetOrderStatusResponse);
   rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
   rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  
+  // Story 3.6 - Farmer Order Tracking RPCs
+  rpc GetFarmerOrders(GetFarmerOrdersRequest) returns (GetFarmerOrdersResponse);
+  rpc GetFarmerOrderDetails(GetFarmerOrderDetailsRequest) returns (GetFarmerOrderDetailsResponse);
+  rpc GetActiveOrderCount(GetActiveOrderCountRequest) returns (GetActiveOrderCountResponse);
+  rpc UpdateTrackingStatus(UpdateTrackingStatusRequest) returns (UpdateTrackingStatusResponse);
+  rpc UpdateOrderDelay(UpdateOrderDelayRequest) returns (UpdateOrderDelayResponse);
+  
+  // Story 3.7 - Transaction History & Earnings RPCs
+  rpc GetFarmerEarnings(GetFarmerEarningsRequest) returns (GetFarmerEarningsResponse);
+  rpc GetFarmerTransactions(GetFarmerTransactionsRequest) returns (GetFarmerTransactionsResponse);
+  rpc GetTransactionDetails(GetTransactionDetailsRequest) returns (GetTransactionDetailsResponse);
 }
+
+// ============================================
+// Story 3.6 - 7-Stage Tracking Status Enum
+// ============================================
+
+enum TrackingStatus {
+  TRACKING_STATUS_UNSPECIFIED = 0;
+  TRACKING_STATUS_LISTED = 1;
+  TRACKING_STATUS_MATCHED = 2;
+  TRACKING_STATUS_PICKUP_SCHEDULED = 3;
+  TRACKING_STATUS_AT_DROP_POINT = 4;
+  TRACKING_STATUS_IN_TRANSIT = 5;
+  TRACKING_STATUS_DELIVERED = 6;
+  TRACKING_STATUS_PAID = 7;
+}
+
+// ============================================
+// Story 3.6 - Farmer Orders List
+// ============================================
+
+message GetFarmerOrdersRequest {
+  int32 farmer_id = 1;
+  string status_filter = 2; // "active", "completed", "all"
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message GetFarmerOrdersResponse {
+  repeated OrderListItem orders = 1;
+  Pagination pagination = 2;
+}
+
+message OrderListItem {
+  string order_id = 1;
+  ListingSummary listing = 2;
+  BuyerSummary buyer = 3;
+  TrackingStatus tracking_status = 4;
+  int32 current_step = 5;
+  int32 total_steps = 6;
+  double total_amount = 7;
+  string eta = 8;
+  int32 delay_minutes = 9;
+  string created_at = 10;
+}
+
+message ListingSummary {
+  string id = 1;
+  string crop_type = 2;
+  string crop_emoji = 3;
+  double quantity_kg = 4;
+  string photo_url = 5;
+}
+
+message BuyerSummary {
+  string business_type = 1;
+  string city = 2;
+  string area = 3;
+}
+
+message Pagination {
+  int32 page = 1;
+  int32 limit = 2;
+  int32 total = 3;
+}
+
+// ============================================
+// Story 3.6 - Order Details with Timeline
+// ============================================
+
+message GetFarmerOrderDetailsRequest {
+  string order_id = 1;
+  int32 farmer_id = 2;
+}
+
+message GetFarmerOrderDetailsResponse {
+  string order_id = 1;
+  int32 farmer_id = 2;
+  ListingSummary listing = 3;
+  BuyerSummary buyer = 4;
+  TrackingStatus tracking_status = 5;
+  int32 current_step = 6;
+  int32 total_steps = 7;
+  double total_amount = 8;
+  string eta = 9;
+  int32 delay_minutes = 10;
+  string delay_reason = 11;
+  HaulerInfo hauler = 12;
+  repeated TimelineEvent status_history = 13;
+  string upi_transaction_id = 14;
+  string created_at = 15;
+  string updated_at = 16;
+}
+
+message HaulerInfo {
+  string id = 1;
+  string name = 2;
+  string phone = 3;
+  string vehicle_type = 4;
+  string vehicle_number = 5;
+}
+
+message TimelineEvent {
+  int32 step = 1;
+  TrackingStatus status = 2;
+  string label = 3;
+  bool completed = 4;
+  bool active = 5;
+  string timestamp = 6;
+  string actor = 7;
+  string note = 8;
+}
+
+// ============================================
+// Story 3.6 - Active Order Count (Badge)
+// ============================================
+
+message GetActiveOrderCountRequest {
+  int32 farmer_id = 1;
+}
+
+message GetActiveOrderCountResponse {
+  int32 count = 1;
+}
+
+// ============================================
+// Story 3.6 - Update Tracking Status
+// ============================================
+
+message UpdateTrackingStatusRequest {
+  string order_id = 1;
+  TrackingStatus new_status = 2;
+  string actor = 3;
+  string note = 4;
+  HaulerInfo hauler_info = 5;
+  string eta = 6;
+  int32 delay_minutes = 7;
+  string delay_reason = 8;
+  string upi_transaction_id = 9;
+}
+
+message UpdateTrackingStatusResponse {
+  bool success = 1;
+  string order_id = 2;
+  TrackingStatus new_status = 3;
+  string timestamp = 4;
+}
+
+// ============================================
+// Story 3.6 - Update Order Delay
+// ============================================
+
+message UpdateOrderDelayRequest {
+  string order_id = 1;
+  int32 delay_minutes = 2;
+  string reason = 3;
+  string new_eta = 4;
+  string actor = 5;
+}
+
+message UpdateOrderDelayResponse {
+  bool success = 1;
+  string order_id = 2;
+  int32 delay_minutes = 3;
+  string new_eta = 4;
+}
+
+// ============================================
+// Existing Messages (unchanged)
+// ============================================
 
 message CreateOrderRequest {
   string buyer_id = 1;
@@ -29,7 +211,7 @@ message GetOrderStatusRequest {
 
 message GetOrderStatusResponse {
   string order_id = 1;
-  string status = 2; // pending, assigned, in_transit, delivered, cancelled
+  string status = 2;
   string hauler_id = 3;
   string current_location = 4;
   string estimated_delivery = 5;
@@ -55,4 +237,86 @@ message CancelOrderRequest {
 message CancelOrderResponse {
   bool success = 1;
   string refund_id = 2;
+}
+
+// ============================================
+// Story 3.7 - Earnings & Transactions
+// ============================================
+
+message GetFarmerEarningsRequest {
+  int32 farmer_id = 1;
+}
+
+message GetFarmerEarningsResponse {
+  double total = 1;
+  double this_month = 2;
+  double pending = 3;
+  int32 total_order_count = 4;
+  int32 this_month_order_count = 5;
+  int32 new_since_last_visit = 6;
+  string currency = 7;
+}
+
+message GetFarmerTransactionsRequest {
+  int32 farmer_id = 1;
+  string status = 2;        // "completed", "pending", "all"
+  string from_date = 3;     // ISO8601
+  string to_date = 4;       // ISO8601
+  string crop_type = 5;
+  string sort_by = 6;       // "date", "amount", "crop"
+  string sort_order = 7;    // "asc", "desc"
+  int32 page = 8;
+  int32 limit = 9;
+}
+
+message GetFarmerTransactionsResponse {
+  repeated TransactionListItem transactions = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  int32 total = 4;
+  bool has_more = 5;
+}
+
+message TransactionListItem {
+  string id = 1;
+  string date = 2;
+  string crop_type = 3;
+  string crop_icon = 4;
+  double quantity_kg = 5;
+  string buyer_type = 6;
+  string buyer_city = 7;
+  double amount = 8;
+  string status = 9;        // "completed", "pending"
+  string quality_grade = 10;
+}
+
+message GetTransactionDetailsRequest {
+  string transaction_id = 1;
+  int32 farmer_id = 2;
+}
+
+message GetTransactionDetailsResponse {
+  string id = 1;
+  ListingSummary listing = 2;
+  BuyerSummary buyer = 3;
+  DropPointInfo drop_point = 4;
+  HaulerInfo hauler = 5;
+  repeated TimelineEvent timeline = 6;
+  PaymentBreakdown payment = 7;
+  string created_at = 8;
+  bool can_download_receipt = 9;
+}
+
+message DropPointInfo {
+  string name = 1;
+  string address = 2;
+}
+
+message PaymentBreakdown {
+  double base_amount = 1;
+  double quality_bonus = 2;
+  double platform_fee = 3;
+  double net_amount = 4;
+  string upi_txn_id = 5;
+  string paid_at = 6;
 }
