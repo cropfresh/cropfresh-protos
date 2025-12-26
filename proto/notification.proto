@@ -1,0 +1,262 @@
+syntax = "proto3";
+
+package cropfresh.notification;
+
+// ============================================
+// Story 3.8 - Notification Service Proto
+// ============================================
+
+service NotificationService {
+  // Notification Dispatch (AC: 1-2)
+  rpc SendSmsNotification(SendSmsRequest) returns (SendNotificationResponse);
+  rpc SendPushNotification(SendPushRequest) returns (SendNotificationResponse);
+  rpc SendFarmerNotification(SendFarmerNotificationRequest) returns (SendNotificationResponse);
+  
+  // Notification List (AC: 3)
+  rpc GetFarmerNotifications(GetNotificationsRequest) returns (GetNotificationsResponse);
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+  
+  // Mark as Read (AC: 3)
+  rpc MarkNotificationRead(MarkReadRequest) returns (MarkReadResponse);
+  rpc MarkAllNotificationsRead(MarkAllReadRequest) returns (MarkReadResponse);
+  
+  // Delete Notification
+  rpc DeleteNotification(DeleteNotificationRequest) returns (DeleteNotificationResponse);
+  
+  // Preferences (AC: 4)
+  rpc GetNotificationPreferences(GetPreferencesRequest) returns (NotificationPreferences);
+  rpc UpdateNotificationPreferences(UpdatePreferencesRequest) returns (NotificationPreferences);
+  
+  // Device Token (AC: 7)
+  rpc RegisterDeviceToken(RegisterTokenRequest) returns (RegisterTokenResponse);
+  rpc UnregisterDeviceToken(UnregisterTokenRequest) returns (UnregisterTokenResponse);
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum NotificationType {
+  NOTIFICATION_TYPE_UNSPECIFIED = 0;
+  
+  // Critical - SMS + Push (AC: 1)
+  ORDER_MATCHED = 1;
+  PAYMENT_RECEIVED = 2;
+  MATCH_EXPIRING = 3;
+  ORDER_CANCELLED = 4;
+  QUALITY_DISPUTE = 5;
+  
+  // Important - Push only (AC: 2)
+  HAULER_EN_ROUTE = 6;
+  PICKUP_COMPLETE = 7;
+  DELIVERED = 8;
+  DROP_POINT_ASSIGNED = 9;
+  MATCH_EXPIRED = 10;
+  
+  // Low priority
+  EDUCATIONAL_CONTENT = 11;
+}
+
+enum NotificationLevel {
+  NOTIFICATION_LEVEL_ALL = 0;
+  NOTIFICATION_LEVEL_CRITICAL = 1;
+  NOTIFICATION_LEVEL_MUTE = 2;
+}
+
+enum SmsStatus {
+  SMS_STATUS_UNSPECIFIED = 0;
+  SMS_STATUS_PENDING = 1;
+  SMS_STATUS_SENT = 2;
+  SMS_STATUS_DELIVERED = 3;
+  SMS_STATUS_FAILED = 4;
+}
+
+// ============================================
+// Notification Message
+// ============================================
+
+message Notification {
+  string id = 1;
+  string farmer_id = 2;
+  NotificationType type = 3;
+  string title = 4;
+  string body = 5;
+  string deeplink = 6;
+  map<string, string> metadata = 7;
+  bool is_read = 8;
+  string created_at = 9;
+}
+
+// ============================================
+// Send SMS Notification (AC: 1)
+// ============================================
+
+message SendSmsRequest {
+  string farmer_id = 1;
+  string phone_number = 2;
+  NotificationType type = 3;
+  string template_key = 4;
+  map<string, string> template_params = 5;
+  string language = 6;  // "en", "kn", "hi", "ta", "te"
+}
+
+message SendNotificationResponse {
+  bool success = 1;
+  string notification_id = 2;
+  string message_id = 3;
+  string error = 4;
+}
+
+// ============================================
+// Send Push Notification (AC: 2)
+// ============================================
+
+message SendPushRequest {
+  string farmer_id = 1;
+  NotificationType type = 2;
+  string title = 3;
+  string body = 4;
+  string deeplink = 5;
+  map<string, string> metadata = 6;
+  string language = 7;
+  bool high_priority = 8;
+}
+
+// ============================================
+// Send Farmer Notification (Smart Routing)
+// ============================================
+
+message SendFarmerNotificationRequest {
+  string farmer_id = 1;
+  NotificationType type = 2;
+  map<string, string> template_params = 3;
+  string language = 4;
+  bool force_sms = 5;  // Override preferences for critical notifications
+}
+
+// ============================================
+// Get Notifications (AC: 3)
+// ============================================
+
+message GetNotificationsRequest {
+  string farmer_id = 1;
+  bool unread_only = 2;
+  NotificationType type_filter = 3;
+  int32 page = 4;
+  int32 limit = 5;
+}
+
+message GetNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32 unread_count = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 total = 5;
+  bool has_more = 6;
+}
+
+message GetUnreadCountRequest {
+  string farmer_id = 1;
+}
+
+message GetUnreadCountResponse {
+  int32 count = 1;
+}
+
+// ============================================
+// Mark as Read (AC: 3)
+// ============================================
+
+message MarkReadRequest {
+  string notification_id = 1;
+  string farmer_id = 2;
+}
+
+message MarkAllReadRequest {
+  string farmer_id = 1;
+}
+
+message MarkReadResponse {
+  bool success = 1;
+  int32 updated_count = 2;
+}
+
+// ============================================
+// Delete Notification
+// ============================================
+
+message DeleteNotificationRequest {
+  string notification_id = 1;
+  string farmer_id = 2;
+}
+
+message DeleteNotificationResponse {
+  bool success = 1;
+}
+
+// ============================================
+// Preferences (AC: 4)
+// ============================================
+
+message NotificationPreferences {
+  string farmer_id = 1;
+  bool sms_enabled = 2;
+  bool push_enabled = 3;
+  string quiet_hours_start = 4;  // "22:00"
+  string quiet_hours_end = 5;    // "06:00"
+  bool quiet_hours_enabled = 6;
+  NotificationLevel level = 7;
+  bool order_updates = 8;
+  bool payment_alerts = 9;
+  bool educational_content = 10;
+}
+
+message GetPreferencesRequest {
+  string farmer_id = 1;
+}
+
+message UpdatePreferencesRequest {
+  NotificationPreferences preferences = 1;
+}
+
+// ============================================
+// Device Token (AC: 7)
+// ============================================
+
+message RegisterTokenRequest {
+  string farmer_id = 1;
+  string fcm_token = 2;
+  string device_type = 3;  // "android", "ios"
+}
+
+message RegisterTokenResponse {
+  bool success = 1;
+  string token_id = 2;
+}
+
+message UnregisterTokenRequest {
+  string farmer_id = 1;
+  string fcm_token = 2;
+}
+
+message UnregisterTokenResponse {
+  bool success = 1;
+}
+
+// ============================================
+// SMS Delivery Log (for retry tracking)
+// ============================================
+
+message SmsDeliveryLog {
+  string id = 1;
+  string farmer_id = 2;
+  string phone_number = 3;
+  string message_id = 4;
+  string template_key = 5;
+  SmsStatus status = 6;
+  int32 retry_count = 7;
+  string sent_at = 8;
+  string delivered_at = 9;
+  string error_message = 10;
+  string created_at = 11;
+}
