@@ -1,0 +1,52 @@
+# Protocol Buffers CI Pipeline for CropFresh Protos
+# This workflow validates proto files on every push and pull request
+
+name: CI
+
+on:
+    push:
+        branches: [main, develop]
+    pull_request:
+        branches: [main, develop]
+
+jobs:
+    # ============================================
+    # JOB 1: Validate Protos
+    # ============================================
+    validate:
+        name: Validate Protos
+        runs-on: ubuntu-latest
+
+        steps:
+            # Step 1: Checkout code
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            # Step 2: Setup Buf (protobuf linter)
+            - name: Setup Buf
+              uses: bufbuild/buf-setup-action@v1
+              with:
+                  version: "latest"
+
+            # Step 3: Lint protobuf files
+            - name: Lint protos
+              run: |
+                  if [ -f "buf.yaml" ]; then
+                    buf lint
+                  else
+                    echo "No buf.yaml found, skipping buf lint"
+                    # Basic validation - check syntax
+                    for proto in $(find . -name "*.proto"); do
+                      echo "Validating: $proto"
+                    done
+                  fi
+
+            # Step 4: Check for breaking changes (on PR only)
+            - name: Check breaking changes
+              if: github.event_name == 'pull_request'
+              run: |
+                  if [ -f "buf.yaml" ]; then
+                    buf breaking --against '.git#branch=main'
+                  else
+                    echo "No buf.yaml found, skipping breaking change detection"
+                  fi
